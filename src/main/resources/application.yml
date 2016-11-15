@@ -1,0 +1,61 @@
+
+cassandra:
+  defaultQueryConsistency: ONE
+  defaultUpdateConsistency: ONE
+  updateTimeoutMillis: 5000
+  compression: LZ4
+  nodeAddress: cassandra-oem.service.consul
+  reload: false
+
+  keywords:
+    - keyword: ENGINE-FAULT
+
+  keyspaces:
+    - name: event_ledger
+      createCommand: "CREATE KEYSPACE event_ledger WITH replication = {'class':'SimpleStrategy', 'replication_factor':1};"
+      dropCommand: "DROP KEYSPACE IF EXISTS event_ledger;"
+      tables:
+        - name: events
+          createCommand: >
+              CREATE TABLE event_ledger.events (
+                  emitter_id text,
+                  emitter_type text,
+                  bucket int,
+                  time timestamp,
+                  event_id text,
+                  event_type text,
+                  text_data text,
+                  bin_data blob,
+                  PRIMARY KEY((emitter_id, emitter_type, bucket), time, event_id)
+              ) WITH CLUSTERING ORDER BY (time DESC);
+          insertPreparedStatementCommand:
+              INSERT INTO event_ledger.events (emitter_id, emitter_type, bucket, time, event_id, event_type, text_data)
+                VALUES ( ?, ?, ?, ?, ?, ?, ? );
+        - name: meta_events
+          createCommand: >
+              CREATE TABLE event_ledger.meta_events (
+                  emitter_id text,
+                  emitter_type text,
+                  bucket int,
+                  PRIMARY KEY((emitter_id, emitter_type), bucket)
+              ) WITH CLUSTERING ORDER BY (bucket ASC);
+        - name: event_buckets
+          createCommand: >
+              CREATE TABLE event_ledger.event_buckets (
+                  emitter_id text,
+                  emitter_type text,
+                  bucket int,
+                  initial_ttl bigint,
+                  PRIMARY KEY((emitter_id, emitter_type), bucket, initial_ttl)
+              ) WITH CLUSTERING ORDER BY (bucket ASC, initial_ttl DESC);
+
+eventLedger:
+    defaultTtlSeconds: 31536000
+    defaultMaxEventSize: 1000000
+    eventTypeToSize:
+        dummyEventType: 1
+
+spring:
+    profiles:
+      active: local
+

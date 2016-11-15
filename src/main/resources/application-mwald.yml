@@ -1,0 +1,14 @@
+
+spring:
+    profiles: mwald
+spark:
+  master: http://event-ledger-qa.connectedfleet.io:8080
+  executor:
+    memory: 2g
+  cassandra:
+    connection:
+      host: http://event-ledger-qa.connectedfleet.io:8080
+s3:
+  bucket:
+    name: S3-AWS
+  url: "s3://peoplenet-spark-poc-data/data/*"
